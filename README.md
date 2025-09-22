@@ -33,11 +33,8 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 ### Claude Code
 
 ```bash
-# Install globally in user scope
-claude mcp add -s user toggl npx -- -y @louis030195/toggl-mcp
-
-# Then set your API key in the environment
-export TOGGL_API_KEY="your-toggl-api-key"
+# Install globally in user scope with API key
+claude mcp add -s user toggl npx -e TOGGL_API_KEY=your-toggl-api-key -- -y @louis030195/toggl-mcp
 ```
 
 ## Get Your Toggl API Key
