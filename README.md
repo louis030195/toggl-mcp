@@ -2,7 +2,7 @@
 
 Dead simple MCP (Model Context Protocol) server for Toggl time tracking. Control your Toggl timer directly from Claude, ChatGPT, or any LLM that supports MCP.
 
-[![Support Development](https://img.shields.io/badge/Support-Development-yellow?style=for-the-badge)](https://buy.stripe.com/14k14n0eZ1wyfix9AAgA802)
+[![Support Development](https://img.shields.io/badge/Support-Development-yellow?style=for-the-badge)](https://buy.stripe.com/14A14n0eZ1wyfix9AAgA802)
 
 ## Features
 
