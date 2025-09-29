@@ -455,6 +455,24 @@ async function main() {
             text += "Daily Breakdown:\n";
             for (const [date, hours] of Object.entries(summary.daily_breakdown)) {
               text += `  ${date}: ${hours}h\n`;
+
+              // Show entries for this day
+              const dayEntries = summary.entries.filter((e: any) =>
+                e.start && e.start.startsWith(date)
+              );
+
+              if (dayEntries.length > 0) {
+                const entrySummary = dayEntries
+                  .map((e: any) => {
+                    const duration = Math.abs(e.duration || 0);
+                    const h = Math.floor(duration / 3600);
+                    const m = Math.floor((duration % 3600) / 60);
+                    const timeStr = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`;
+                    return `    • ${e.description || "No description"} (${timeStr})`;
+                  })
+                  .join("\n");
+                text += entrySummary + "\n";
+              }
             }
             text += "\n";
           }
@@ -488,6 +506,24 @@ async function main() {
             text += "Daily Breakdown:\n";
             for (const [date, hours] of Object.entries(summary.daily_breakdown)) {
               text += `  ${date}: ${hours}h\n`;
+
+              // Show entries for this day
+              const dayEntries = summary.entries.filter((e: any) =>
+                e.start && e.start.startsWith(date)
+              );
+
+              if (dayEntries.length > 0) {
+                const entrySummary = dayEntries
+                  .map((e: any) => {
+                    const duration = Math.abs(e.duration || 0);
+                    const h = Math.floor(duration / 3600);
+                    const m = Math.floor((duration % 3600) / 60);
+                    const timeStr = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`;
+                    return `    • ${e.description || "No description"} (${timeStr})`;
+                  })
+                  .join("\n");
+                text += entrySummary + "\n";
+              }
             }
             text += "\n";
           }
