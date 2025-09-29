@@ -105,6 +105,71 @@ class TogglClient {
     await this.api.delete(`/workspaces/${workspaceId}/time_entries/${entryId}`);
     return { success: true, message: `Deleted entry ${entryId}` };
   }
+
+  async getEntriesForDateRange(startDate: Date, endDate: Date) {
+    const response = await this.api.get("/me/time_entries", {
+      params: {
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+      },
+    });
+    return response.data;
+  }
+
+  async getWeeklyEntries(weekOffset: number = 0) {
+    // Calculate Monday of the target week
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + daysToMonday + (weekOffset * 7));
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    const entries = await this.getEntriesForDateRange(monday, sunday);
+
+    // Calculate summaries
+    let totalSeconds = 0;
+    const dailyTotals: Record<string, number> = {};
+    const projectTotals: Record<string, number> = {};
+
+    for (const entry of entries) {
+      const duration = Math.abs(entry.duration || 0);
+      totalSeconds += duration;
+
+      // Daily breakdown
+      const date = entry.start.split('T')[0];
+      dailyTotals[date] = (dailyTotals[date] || 0) + duration;
+
+      // Project breakdown
+      const projectName = entry.project_name || "No Project";
+      projectTotals[projectName] = (projectTotals[projectName] || 0) + duration;
+    }
+
+    return {
+      week_starting: monday.toISOString().split('T')[0],
+      week_ending: sunday.toISOString().split('T')[0],
+      total_hours: Math.round(totalSeconds / 3600 * 100) / 100,
+      daily_breakdown: Object.fromEntries(
+        Object.entries(dailyTotals).map(([date, seconds]) =>
+          [date, Math.round(seconds / 3600 * 100) / 100]
+        ).sort()
+      ),
+      project_breakdown: Object.fromEntries(
+        Object.entries(projectTotals)
+          .map(([project, seconds]) =>
+            [project, Math.round(seconds / 3600 * 100) / 100]
+          )
+          .sort((a, b) => (b[1] as number) - (a[1] as number))
+      ),
+      entry_count: entries.length,
+      entries: entries
+    };
+  }
 }
 
 const StartTimerSchema = z.object({
@@ -114,6 +179,10 @@ const StartTimerSchema = z.object({
 
 const DeleteEntrySchema = z.object({
   entry_id: z.number().describe("ID of the time entry to delete"),
+});
+
+const WeeklyEntriesSchema = z.object({
+  week_offset: z.number().optional().default(0).describe("Number of weeks before current week (0 = current, -1 = last week)"),
 });
 
 async function main() {
@@ -191,6 +260,27 @@ async function main() {
             },
           },
           required: ["entry_id"],
+        },
+      },
+      {
+        name: "toggl_weekly",
+        description: "Get weekly time tracking summary with total hours, daily/project breakdowns",
+        inputSchema: {
+          type: "object",
+          properties: {
+            week_offset: {
+              type: "number",
+              description: "Number of weeks before current week (0 = current, -1 = last week)",
+            },
+          },
+        },
+      },
+      {
+        name: "toggl_last_week",
+        description: "Get last week's time tracking summary",
+        inputSchema: {
+          type: "object",
+          properties: {},
         },
       },
     ],
@@ -347,6 +437,75 @@ async function main() {
               {
                 type: "text",
                 text: result.message,
+              },
+            ],
+          };
+        }
+
+        case "toggl_weekly": {
+          const { week_offset } = WeeklyEntriesSchema.parse(args);
+          const summary = await client.getWeeklyEntries(week_offset);
+
+          const weekLabel = week_offset === 0 ? "Current" : week_offset === -1 ? "Last" : `${Math.abs(week_offset)} weeks ago`;
+
+          let text = `${weekLabel} Week Summary (${summary.week_starting} to ${summary.week_ending})\n`;
+          text += `Total: ${summary.total_hours} hours\n\n`;
+
+          if (Object.keys(summary.daily_breakdown).length > 0) {
+            text += "Daily Breakdown:\n";
+            for (const [date, hours] of Object.entries(summary.daily_breakdown)) {
+              text += `  ${date}: ${hours}h\n`;
+            }
+            text += "\n";
+          }
+
+          if (Object.keys(summary.project_breakdown).length > 0) {
+            text += "Project Breakdown:\n";
+            for (const [project, hours] of Object.entries(summary.project_breakdown)) {
+              text += `  ${project}: ${hours}h\n`;
+            }
+          }
+
+          text += `\nTotal entries: ${summary.entry_count}`;
+
+          return {
+            content: [
+              {
+                type: "text",
+                text,
+              },
+            ],
+          };
+        }
+
+        case "toggl_last_week": {
+          const summary = await client.getWeeklyEntries(-1);
+
+          let text = `Last Week Summary (${summary.week_starting} to ${summary.week_ending})\n`;
+          text += `Total: ${summary.total_hours} hours\n\n`;
+
+          if (Object.keys(summary.daily_breakdown).length > 0) {
+            text += "Daily Breakdown:\n";
+            for (const [date, hours] of Object.entries(summary.daily_breakdown)) {
+              text += `  ${date}: ${hours}h\n`;
+            }
+            text += "\n";
+          }
+
+          if (Object.keys(summary.project_breakdown).length > 0) {
+            text += "Project Breakdown:\n";
+            for (const [project, hours] of Object.entries(summary.project_breakdown)) {
+              text += `  ${project}: ${hours}h\n`;
+            }
+          }
+
+          text += `\nTotal entries: ${summary.entry_count}`;
+
+          return {
+            content: [
+              {
+                type: "text",
+                text,
               },
             ],
           };

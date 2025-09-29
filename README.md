@@ -75,6 +75,22 @@ List all projects in your workspace.
 ### `toggl_delete`
 Delete a time entry by its ID.
 
+### `toggl_weekly`
+Get weekly time tracking summary with total hours and breakdowns.
+- Parameters: `week_offset` (optional, number)
+  - `0` = current week
+  - `-1` = last week
+  - `-2` = two weeks ago, etc.
+
+Returns:
+- Total hours for the week
+- Daily breakdown (hours per day)
+- Project breakdown (hours per project)
+- Full list of entries
+
+### `toggl_last_week`
+Convenience function to get last week's time tracking summary (equivalent to `toggl_weekly` with `week_offset: -1`).
+
 ## Development
 
 ```bash
