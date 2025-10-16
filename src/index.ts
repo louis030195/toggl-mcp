@@ -138,7 +138,16 @@ class TogglClient {
     const projectTotals: Record<string, number> = {};
 
     for (const entry of entries) {
-      const duration = Math.abs(entry.duration || 0);
+      let duration: number;
+      if (entry.duration < 0) {
+        // Timer is running - calculate elapsed time from start
+        const startTime = new Date(entry.start).getTime();
+        const now = Date.now();
+        duration = Math.floor((now - startTime) / 1000);
+      } else {
+        // Timer is stopped - use the stored duration
+        duration = Math.abs(entry.duration || 0);
+      }
       totalSeconds += duration;
 
       // Daily breakdown
@@ -346,7 +355,18 @@ async function main() {
             };
           }
 
-          const duration = Math.abs(current.duration + Math.floor(Date.now() / 1000));
+          // For running timers, calculate duration from start time
+          let duration: number;
+          if (current.duration < 0) {
+            // Timer is running - calculate elapsed time from start
+            const startTime = new Date(current.start).getTime();
+            const now = Date.now();
+            duration = Math.floor((now - startTime) / 1000);
+          } else {
+            // Timer is stopped - use the stored duration
+            duration = Math.abs(current.duration);
+          }
+
           const hours = Math.floor(duration / 3600);
           const minutes = Math.floor((duration % 3600) / 60);
 
@@ -375,7 +395,17 @@ async function main() {
           }
 
           const totalSeconds = entries.reduce((sum: number, entry: any) => {
-            return sum + Math.abs(entry.duration);
+            let duration: number;
+            if (entry.duration < 0) {
+              // Timer is running - calculate elapsed time from start
+              const startTime = new Date(entry.start).getTime();
+              const now = Date.now();
+              duration = Math.floor((now - startTime) / 1000);
+            } else {
+              // Timer is stopped - use the stored duration
+              duration = Math.abs(entry.duration);
+            }
+            return sum + duration;
           }, 0);
 
           const totalHours = Math.floor(totalSeconds / 3600);
@@ -383,10 +413,20 @@ async function main() {
 
           const entryList = entries
             .map((e: any) => {
-              const duration = Math.abs(e.duration);
+              let duration: number;
+              if (e.duration < 0) {
+                // Timer is running - calculate elapsed time from start
+                const startTime = new Date(e.start).getTime();
+                const now = Date.now();
+                duration = Math.floor((now - startTime) / 1000);
+              } else {
+                // Timer is stopped - use the stored duration
+                duration = Math.abs(e.duration);
+              }
               const h = Math.floor(duration / 3600);
               const m = Math.floor((duration % 3600) / 60);
-              return `- ${e.description || "No description"} (${h}h ${m}m)`;
+              const runningIndicator = e.duration < 0 ? " (running)" : "";
+              return `- ${e.description || "No description"} (${h}h ${m}m)${runningIndicator}`;
             })
             .join("\n");
 
@@ -464,11 +504,21 @@ async function main() {
               if (dayEntries.length > 0) {
                 const entrySummary = dayEntries
                   .map((e: any) => {
-                    const duration = Math.abs(e.duration || 0);
+                    let duration: number;
+                    if (e.duration < 0) {
+                      // Timer is running - calculate elapsed time from start
+                      const startTime = new Date(e.start).getTime();
+                      const now = Date.now();
+                      duration = Math.floor((now - startTime) / 1000);
+                    } else {
+                      // Timer is stopped - use the stored duration
+                      duration = Math.abs(e.duration || 0);
+                    }
                     const h = Math.floor(duration / 3600);
                     const m = Math.floor((duration % 3600) / 60);
                     const timeStr = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`;
-                    return `    • ${e.description || "No description"} (${timeStr})`;
+                    const runningIndicator = e.duration < 0 ? " (running)" : "";
+                    return `    • ${e.description || "No description"} (${timeStr})${runningIndicator}`;
                   })
                   .join("\n");
                 text += entrySummary + "\n";
@@ -515,11 +565,21 @@ async function main() {
               if (dayEntries.length > 0) {
                 const entrySummary = dayEntries
                   .map((e: any) => {
-                    const duration = Math.abs(e.duration || 0);
+                    let duration: number;
+                    if (e.duration < 0) {
+                      // Timer is running - calculate elapsed time from start
+                      const startTime = new Date(e.start).getTime();
+                      const now = Date.now();
+                      duration = Math.floor((now - startTime) / 1000);
+                    } else {
+                      // Timer is stopped - use the stored duration
+                      duration = Math.abs(e.duration || 0);
+                    }
                     const h = Math.floor(duration / 3600);
                     const m = Math.floor((duration % 3600) / 60);
                     const timeStr = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`;
-                    return `    • ${e.description || "No description"} (${timeStr})`;
+                    const runningIndicator = e.duration < 0 ? " (running)" : "";
+                    return `    • ${e.description || "No description"} (${timeStr})${runningIndicator}`;
                   })
                   .join("\n");
                 text += entrySummary + "\n";
